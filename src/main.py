@@ -1,27 +1,42 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 from typing import List
 
 from datum import Datum, write_symbol_table
-from util import is_pseudo_command, translate_pseudo_command
-from asm_parser import ParseResult
+# from util import is_pseudo_command, translate_pseudo_command
+from asm_parser import ParseResult, is_pseudo_command, translate_pseudo_command
 
+global address # TODO?
 
 def main(argc: int, argv: List[str]):
     write_symbols = False
-    if argc == 4 and argv[1] == "-symbols":
+    input_file: str = None
+    if argc == 3 and argv[1] == "-symbols":
         write_symbols = True 
-        input_file = argv[2] # open(argv[2], "r")
-        symbol_file = argv[3] # open(argv[3], "w")
-    elif argc == 3:
+        input_file = argv[2] 
+        symbol_file = f"{input_file[:input_file.index('.')]}_symbols.txt"
+        print(f"[MAIN] -- input file: {input_file}, symbol file: {symbol_file}")
+        
+        try:
+            os.remove(symbol_file)
+        except OSError:
+            pass
+
+    elif argc == 2:
         input_file = argv[1] # open(argv[1], "r")
-        output_file = argv[2] # open(argv[2], "r")
+        output_file = f"{input_file[:input_file.index('.asm')]}_output.o"
+        
+        try:
+            os.remove(output_file)
+        except OSError:
+            pass
+
+        print(f"[MAIN] -- input file: {input_file}, output file: {output_file}")
+
     else:
-        print("Too few arguments, try\t`assemble input.asm output.o")
-
-    print(f"[MAIN] -- input file: {input_file}, output file: {output_file}")
-
+        print("Too few arguments, try\t`assemble <input.asm>")
     
     symbols = []
     done_with_data = False
@@ -85,7 +100,7 @@ def main(argc: int, argv: List[str]):
 
             else: # is a command
                 if is_pseudo_command(line): # is a pseudo command
-                    translate_pseudo_command(line)
+                    translate_pseudo_command(output_file, line, address, symbols)
 
                 else: # is a normal command
                     command = ParseResult(line, address, symbols)

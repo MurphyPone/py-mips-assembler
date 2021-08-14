@@ -1,3 +1,6 @@
+from typing import List 
+from datum import Datum
+from asm_parser import ParseResult
 
 R_INSTRUCTIONS = ["mul", "sub", "add", "nor", "addu", "slt", "srav"]
 I_INSTRUCTIONS = ["addi", "lui", "lw", "sw", "slti", "addiu", "beq", "bne", "sra", "sll", "blez", "bgtz"]
@@ -115,8 +118,62 @@ def get_function(mnemonic: str):
 def get_IMM(Imm):
     return "{0:016b}".format(Imm)
 
-def translate_pseudo_command(line):
-    pass
+def translate_pseudo_command(output_file, line, labels: List[Datum], address):
+    split = line.split()
+    mnemonic = split[0]
+    rest_of_str = " ".join(split[1:])
+
+    if mnemonic == "move": # ret addu, rd, zero, rs
+        rd, rs = split[1], split[2]
+        subcommand = f"addu\t{rd}, $zero, {rs}"
+        
+        command = ParseResult(subcommand, address, labels)
+        command.write_parse_result(output_file)
+    
+    elif mnemonic == "blt":
+        rs    = split[1]
+        rt    = split[2]
+        label = split[3]
+
+        subcommand_slt = f"slt\t$at, {rs}, {rt}"
+        subcommand_bne = f"bne\t$at, $zero {label}"
+        
+        command = ParseResult(subcommand_slt, address, labels)
+        command.write_parse_result(output_file)
+
+        address += 4 # TODO this is gonna cause a problem...
+
+        command = ParseResult(subcommand_bne, address, labels)
+        command.write_parse_result(output_file)
+
+    elif mnemonic == "la":
+        rt, label = split[1], split[2]
+
+        for lbl in labels:
+            if lbl.name == label:
+                subcommand = f"addi\t{rt}, $zero, {lbl.address}"
+                command = ParseResult(subcommand, address, labels)
+                command.write_parse_result(output_file)
+
+    elif mnemonic == "li":
+        rt, offset = split[1], split[2]
+        subcommand = f"addiu\t{rt}, $zero, {offset}"
+        command = ParseResult(subcommand, address, labels)
+        command.write_parse_result(output_file)
+
+    elif mnemonic == "lw":
+        rt, label = split[1], split[2]
+
+        for lbl in labels:
+            if lbl.name == label:
+                subcommand = f"lw\t{rt}, {lbl.address}($zero)"
+                command = ParseResult(subcommand, address, labels)
+                command.write_parse_result(output_file)
+    
+    elif mnemonic == "nop":
+        subcommand = f"sll\t$zero, $zero, 0"
+        command = ParseResult(subcommand, address, labels)
+        command.write_parse_result(output_file)
 
 def is_pseudo_command(line):
     mnemonic = line.split()[0] 

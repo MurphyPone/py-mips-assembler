@@ -8,6 +8,7 @@ class Datum():
         if instr_type == ".label":
             self.instr_type = instr_type
             self.name = name
+            self.address = address
 
             return 
             
@@ -124,7 +125,7 @@ class Datum():
                     if padding_needed != 32:
                         f.write(f"{'0'*padding_needed}")
                     bytes_written += padding_needed / 8
-                    
+
 
 def write_symbol_table(output_file, symbols):
     with open(output_file, "w") as f:

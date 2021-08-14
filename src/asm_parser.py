@@ -1,5 +1,200 @@
-from util import classify, binary_from_int, get_26bit_rep, reg_lookup, get_opcode, get_function, get_IMM
+# from util import classify, binary_from_int, get_26bit_rep, reg_lookup, get_opcode, get_function, get_IMM
 import ctypes
+from typing import List
+from datum import Datum
+
+# util 
+
+R_INSTRUCTIONS = ["mul", "sub", "add", "nor", "addu", "slt", "srav"]
+I_INSTRUCTIONS = ["addi", "lui", "lw", "sw", "slti", "addiu", "beq", "bne", "sra", "sll", "blez", "bgtz"]
+S_INSTRUCTIONS = ["mult", "syscall", "j"]
+
+PSEUDO_COMMANDS = ["move", "blt", "la", "li", "nop"]
+
+class Register():
+    def __init__(self, name, num):
+        self.name = name 
+        self.num = num
+
+class Instruction():
+    def __init__(self, name, instr_type, opcode, function_code):
+        self.name = name 
+        self.instr_type = instr_type
+        self.opcode = opcode
+        self.function_code = function_code
+
+REGISTERS = [
+    Register("$zero", 0),
+    Register("$at", 1),
+    Register("$v0", 2),
+    Register("$v1", 3),
+
+    Register("$a0", 4),
+    Register("$a1", 5),
+    Register("$a2", 6),
+    Register("$a3", 7),
+
+    Register("$t0", 8),
+    Register("$t1", 9),
+    Register("$t2", 10),
+    Register("$t3", 11),
+    Register("$t4", 12),
+    Register("$t5", 13),
+    Register("$t6", 14),
+    Register("$t7", 15),
+    
+    Register("$s0", 16),
+    Register("$s1", 17),
+    Register("$s2", 18),
+    Register("$s3", 19),
+    Register("$s4", 20),
+    Register("$s5", 21),
+    Register("$s6", 22),
+    Register("$s7", 23),
+
+    Register("$t8", 24),
+    Register("$t9", 25),
+    
+    Register("$k0", 26),
+    Register("$t1", 27),
+]
+
+INSTRUCITONS = [
+    Instruction("mul", "R", "011100", "000010"),
+    Instruction("mul",  "R", "011100", "000010"),
+    Instruction("add",  "R", "000000", "100000"),
+    Instruction("sub",  "R", "000000", "100010"),
+    Instruction("addi", "I", "001000", None),
+    Instruction("lui",  "I", "001111", None),
+    Instruction("lw",   "I", "100011", None),
+    Instruction("mult", "S", "000000", "011000"),
+
+    Instruction("nor",  "R", "000000", "100111"),
+    Instruction("slti", "I", "001010", None),
+    Instruction("syscall","S","000000", "001100"),
+
+    Instruction("sw",   "I", "101011", None),
+    Instruction("addu", "R", "000000", "100001"),
+    Instruction("sll",  "I", "000000", "000000"),
+    Instruction("slt",  "R", "000000", "101010"),
+    Instruction("sra",  "I", "000000", "000011"),
+    Instruction("srav", "R", "000000", "000111"),
+    Instruction("addiu","I", "001001", None ),
+    Instruction("beq",  "I", "000100", None ),
+    Instruction("bne",  "I", "000101", None ),
+    Instruction("blez", "S", "000110", None ),
+    Instruction("bgtz", "S", "000111", None ),
+    Instruction("j",    "S", "000010", None),
+]
+
+def classify(mnemonic: str):
+    if mnemonic in R_INSTRUCTIONS:
+        return "R"
+    elif mnemonic in I_INSTRUCTIONS:
+        return "I"
+    elif mnemonic in S_INSTRUCTIONS:
+        return "S"
+    else:
+        print("error in classify")
+        raise(Exception)
+
+
+def reg_lookup(reg_name: str):
+    for register in REGISTERS:
+        if register.name == reg_name:
+            return register.num
+
+    return 255
+
+def get_opcode(mnemonic: str):
+    for instruction in INSTRUCITONS:
+        if mnemonic == instruction.name:
+            return instruction.opcode
+    
+    return None
+
+def get_function(mnemonic: str):
+    for instruction in INSTRUCITONS:
+        if mnemonic == instruction.name:
+                return instruction.function_code
+
+def get_IMM(Imm):
+    return "{0:016b}".format(Imm if Imm >= 0 else (1<<16) + Imm)
+
+def translate_pseudo_command(output_file, line, labels: List[Datum], address):
+    split = line.split()
+    mnemonic = split[0]
+    rest_of_str = " ".join(split[1:])
+
+    if mnemonic == "move": # ret addu, rd, zero, rs
+        rd, rs = split[1], split[2]
+        subcommand = f"addu\t{rd}, $zero, {rs}"
+        
+        command = ParseResult(subcommand, address, labels)
+        command.write_parse_result(output_file)
+    
+    elif mnemonic == "blt":
+        rs    = split[1]
+        rt    = split[2]
+        label = split[3]
+
+        subcommand_slt = f"slt\t$at, {rs}, {rt}"
+        subcommand_bne = f"bne\t$at, $zero {label}"
+        
+        command = ParseResult(subcommand_slt, address, labels)
+        command.write_parse_result(output_file)
+
+        address += 4 # TODO this is gonna cause a problem...
+
+        command = ParseResult(subcommand_bne, address, labels)
+        command.write_parse_result(output_file)
+
+    elif mnemonic == "la":
+        rt, label = split[1], split[2]
+
+        for lbl in labels:
+            if lbl.name == label:
+                subcommand = f"addi\t{rt}, $zero, {lbl.address}"
+                command = ParseResult(subcommand, address, labels)
+                command.write_parse_result(output_file)
+
+    elif mnemonic == "li":
+        rt, offset = split[1], split[2]
+        subcommand = f"addiu\t{rt}, $zero, {offset}"
+        command = ParseResult(subcommand, address, labels)
+        command.write_parse_result(output_file)
+
+    elif mnemonic == "lw":
+        rt, label = split[1], split[2]
+
+        for lbl in labels:
+            if lbl.name == label:
+                subcommand = f"lw\t{rt}, {lbl.address}($zero)"
+                command = ParseResult(subcommand, address, labels)
+                command.write_parse_result(output_file)
+    
+    elif mnemonic == "nop":
+        subcommand = f"sll\t$zero, $zero, 0"
+        command = ParseResult(subcommand, address, labels)
+        command.write_parse_result(output_file)
+
+def is_pseudo_command(line):
+    mnemonic = line.split()[0] 
+    if mnemonic == "lw":
+        if "(" in line: # not a special case
+            return False 
+        else:
+            return True 
+    
+    return mnemonic in PSEUDO_COMMANDS
+
+def binary_from_int(x: int):
+    return "{0:05b}".format(x if x >= 0 else (1<<5) + x)
+
+def get_26bit_rep(x: int):
+    return "{0:026b}".format(x if x >= 0 else (1<<26) + x)
+
+## 
 
 
 class ParseResult():
@@ -58,32 +253,32 @@ class ParseResult():
             if self.mnemonic == "addi" or self.mnemonic == "slti":
                 self.rt_name = split[1]
                 self.rs_name = split[2]
-                self.Imm     = ctypes.c_int16(split[3])
+                self.Imm     = int(split[3])
             
             elif self.mnemonic == "addiu":
                 self.rt_name = split[1]
                 self.rs_name = split[2]
-                self.Imm     = ctypes.c_uint16(split[3])
+                self.Imm     = int(split[3])
 
             elif self.mnemonic == "sra" or self.mnemonic == "sll":
                 self.rd_name = split[1]
                 self.rt_name = split[2]
                 shift_amt    = split[3]
-                self.RS      = binary_from_int(shift_amt)
+                self.rs      = binary_from_int(shift_amt)
 
             elif self.mnemonic == "lui":
                 self.rt_name = split[1]
-                self.Imm     = ctypes.c_int16(split[2])
-                self.RS      = "00000"
+                self.Imm     = int(split[3])
+                self.rs      = "00000"
 
             elif self.mnemonic == "bglez" or self.mnemonic == "bgtz":
                 self.rs_name = split[1]
                 label        = split[2]
-                self.Imm     = ctypes.c_int16(split[3])
+                self.Imm     = int(split[3])
 
                 for symbol in symbols:
                     if symbol.name == label:
-                        self.Imm = ctypes.c_int16((symbol.address - current_address -4) / 4 )
+                        self.Imm = int((symbol.address - current_address -4) / 4 )
 
             elif self.mnemonic == "bne" or self.mnemonic == "beq":
                 self.rs_name = split[1]
@@ -92,7 +287,7 @@ class ParseResult():
 
                 for symbol in symbols:
                     if symbol.name == label:
-                        self.Imm = ctypes.c_int16((symbol.address - current_address -4) / 4 )
+                        self.Imm = int((symbol.address - current_address -4) / 4 )
 
             elif self.mnemonic == "lw" or self.mnemonic == "sw":
                 self.rs_name = split[1]
@@ -101,9 +296,7 @@ class ParseResult():
         
         elif self.instr_type == "S":
             if self.mnemonic == "syscall":
-                self.rs_name = split[1]
-                self.rt_name = split[1]
-                rd = 0
+                pass
 
             elif self.mnemonic == "j":
                 label = split[1]
@@ -133,10 +326,13 @@ class ParseResult():
 
         self.opcode = get_opcode(self.mnemonic)
         self.function = get_function(self.mnemonic)
+        
+        
         if self.Imm:
             self.IMM = get_IMM(self.Imm)
         else:
             self.Imm = 0
+            self.IMM = get_IMM(self.Imm)
 
     def __repr__(self):
         res = f"{self.ASM_instruction}\n"
@@ -153,34 +349,34 @@ class ParseResult():
     def write_parse_result(self, output_file):
         """writes the contents of the ParseResult to an output file"""
 
-        with open(output_file, "w") as f:
-            if self.instr_type == "r":
-                f.write(f"{self.opcode}{self.RS}{self.RT}{self.RD}00000{self.function}\n")
+        with open(output_file, "a") as f:
+            if self.instr_type == "R":
+                f.write(f"{self.opcode}{self.rs}{self.rt}{self.rd}00000{self.function}\n")
             
-            elif self.instr_type == "i":
+            elif self.instr_type == "I":
                 if self.mnemonic == "slti":
-                    f.write(f"{self.opcode}{self.RS}{self.RT}{self.IMM}")
+                    f.write(f"{self.opcode}{self.rs}{self.rt}{self.IMM}\n")
                 
                 elif self.mnemonic == "sra" or self.mnemonic == "sll":
-                    f.write(f"{self.opcode}00000{self.RT}{self.RD}{self.RS}{self.function}\n")
+                    f.write(f"{self.opcode}00000{self.rt}{self.rd}{self.rs}{self.function}\n")
                 
                 elif self.mnemonic == "blez" or self.mnemonic == "bgtz":
-                    f.write(f"{self.opcode}{self.RS}00000{self.RD}{self.IMM}\n")
+                    f.write(f"{self.opcode}{self.rs}00000{self.rd}{self.IMM}\n")
                 
                 else:
-                    f.write(f"{self.opcode}{self.RS}{self.RT}{self.IMM}\n")
+                    f.write(f"{self.opcode}{self.rs}{self.rt}{self.IMM}\n")
 
-            elif self.instr_type == "s":
+            elif self.instr_type == "S":
                 if self.mnemonic == "syscall":
-                    syscall_code = 00000000000000000000
+                    syscall_code = "00000000000000000000"
                     f.write(f"{self.opcode}{syscall_code}{self.function}\n")
                 
                 elif self.mnemonic == "mult":
-                    mult_code = 0000000000
-                    f.write(f"{self.opcode}{self.RS}{self.RT}{mult_code}{self.function}\n")
+                    mult_code = "0000000000"
+                    f.write(f"{self.opcode}{self.rs}{self.rt}{mult_code}{self.function}\n")
 
                 elif self.mnemonic == "j":
-                    mult_code = 0000000000
+                    mult_code = "0000000000"
                     f.write(f"{self.opcode}{self.jump_address}\n")
 
     def write_parse_results(self, output_file, results):

@@ -3,9 +3,15 @@
 A MIPS assembler written in Python
 
 ## Use
-`./main.py <input.asm> <output.o>`
-`./main.py -symbols <input.asm> <symbols.txt>` to write a symbol table
+`./main.py <input.asm>`
+`./main.py -symbols <input.asm>` to write a symbol table
 
-## TODO
+generates the relevant machine code for the valid `<input.asm>`
 
-- need to implement `translate_pseudo_command`
+## TODO 
+
+- improve testing suite
+
+## Contributing 
+
+pls don't xoxo I know it's gross 
