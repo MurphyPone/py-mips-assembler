@@ -15,7 +15,8 @@ class Datum():
         self.last_was_asciiz = False
 
         self.name: str = None
-        self.instr_type:str = None
+        self.instr_type: str = None
+        self.value: str = None 
         self.array: List[int] = None 
         self.txt: str = None # the actual string
         self.str: str = None # the binary representation
@@ -36,14 +37,15 @@ class Datum():
             # check if data is a list
             if "," in rest_of_str or ":" in rest_of_str:
                 self.array = []
-                self.type = ".word[]"
+                self.instr_type = ".word[]"
+                rest_of_str = rest_of_str[len(".word"):]
+                print(rest_of_str)
 
                 if "," in rest_of_str:
                     elems = rest_of_str.split(",")
                     for e in elems:
                         self.array.append(int(e))
                         self.address += 4
-
                 
                 else:
                     value, length  = rest_of_str.split(":")
@@ -51,7 +53,7 @@ class Datum():
                     length = int(length)
                     self.array = [value] * length
                     
-                    for i in range(self.length):
+                    for i in range(length):
                         self.address += 0x4
             
             # single value
@@ -74,19 +76,19 @@ class Datum():
 
 
     def __repr__(self):
-        res = f"name: {self.name}\n"
-        res += f"\ttype: {self.instr_type}\n"
-        res += f"\taddress: {self.address}\n"
+        res = f"[[name: {self.name}, "
+        res += f"type: {self.instr_type}, "
+        res += f"address: {self.address}, "
 
         if self.instr_type == ".word[]":
-            res += f"\tarray: {self.array}"
+            res += f"array: {self.array}"
         elif self.instr_type == ".word":
-            res += f"\value: {self.value}"
+            res += f"value: {self.value}"
         elif self.instr_type == ".asciiz":
-            res += f"\vtext: {self.txt}"
-            res += f"\vstr: {self.str}"
+            res += f"text: {self.txt}"
+            res += f"str: {self.str}"
 
-        return res 
+        return res + "]]" 
 
     
     def write_datum(self, output_file, type_next):

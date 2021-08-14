@@ -121,7 +121,7 @@ def get_function(mnemonic: str):
 def get_IMM(Imm):
     return "{0:016b}".format(Imm if Imm >= 0 else (1<<16) + Imm)
 
-def translate_pseudo_command(output_file, line, labels: List[Datum], address):
+def translate_pseudo_command(output_file, line, address, labels: List[Datum]):
     split = line.split()
     mnemonic = split[0]
     rest_of_str = " ".join(split[1:])
@@ -291,8 +291,10 @@ class ParseResult():
 
             elif self.mnemonic == "lw" or self.mnemonic == "sw":
                 self.rs_name = split[1]
-                self.rt_name = split[2]
-                self.Imm     = split[3]
+                mess = split[2].replace("("," ").replace(")"," ").split()
+
+                self.Imm     = int(mess[0])
+                self.rt_name = mess[1]
         
         elif self.instr_type == "S":
             if self.mnemonic == "syscall":
