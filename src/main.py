@@ -51,6 +51,7 @@ def main(argc: int, argv: List[str]):
 
             if line.startswith("#") or line == "": 
                 continue
+
             elif line == ".data":
                 address = 0x2000 
 
@@ -89,11 +90,7 @@ def main(argc: int, argv: List[str]):
                 continue # skip data on second pass
 
             elif line == ".text":
-                done_with_data = True 
                 address = 0x0000 
-
-            elif not done_with_data: # we're reading data
-                symbols.append(Datum(line, address))
 
             elif ":" in line: # is a label
                 continue 

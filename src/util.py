@@ -148,6 +148,7 @@ def translate_pseudo_command(output_file, line, labels: List[Datum], address):
 
     elif mnemonic == "la":
         rt, label = split[1], split[2]
+        print(rt, label)
 
         for lbl in labels:
             if lbl.name == label:

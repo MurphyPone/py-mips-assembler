@@ -122,6 +122,7 @@ def get_IMM(Imm):
     return "{0:016b}".format(Imm if Imm >= 0 else (1<<16) + Imm)
 
 def translate_pseudo_command(output_file, line, address, labels: List[Datum]):
+    print(f"[TRANSLATE] -- {line}")
     split = line.split()
     mnemonic = split[0]
     rest_of_str = " ".join(split[1:])
@@ -152,6 +153,8 @@ def translate_pseudo_command(output_file, line, address, labels: List[Datum]):
     elif mnemonic == "la":
         rt, label = split[1], split[2]
 
+        print(labels)
+        print(f"'{label}'")
         for lbl in labels:
             if lbl.name == label:
                 subcommand = f"addi\t{rt}, $zero, {lbl.address}"
@@ -295,8 +298,6 @@ class ParseResult():
                 mess = split[2].replace("(", " ").replace(")", " ").split()
                 self.rs_name = mess[1]
                 self.Imm     = int(mess[0])
-
-                print(self.rt_name, self.rs_name, self.Imm)
         
         elif self.instr_type == "S":
             if self.mnemonic == "syscall":

@@ -16,13 +16,14 @@ class Datum():
 
         self.name: str = None
         self.instr_type:str = None
-        self.array: List[int] = None 
+        self.array: List[int] = None
+        self.value: int = None
         self.txt: str = None # the actual string
         self.str: str = None # the binary representation
         self.address: int = address 
 
         split = line.split()
-        self.name = split[0]
+        self.name = split[0][:-1]
         self.instr_type = split[1]
 
         rest_of_str = " ".join(split[1:])
@@ -36,10 +37,9 @@ class Datum():
             # check if data is a list
             if "," in rest_of_str or ":" in rest_of_str:
                 self.array = []
-                self.type = ".word[]"
+                self.instr_type = ".word[]"
 
                 rest_of_str = rest_of_str[len(".word"):]
-
 
                 if "," in rest_of_str:
                     elems = rest_of_str.split(",")
@@ -47,7 +47,6 @@ class Datum():
                         self.array.append(int(e))
                         self.address += 4
 
-                
                 else:
                     value, length  = rest_of_str.split(":")
                     value = int(value)
@@ -77,17 +76,17 @@ class Datum():
 
 
     def __repr__(self):
-        res = f"name: {self.name}\n"
+        res = f"name: '{self.name}'\n"
         res += f"\ttype: {self.instr_type}\n"
         res += f"\taddress: {self.address}\n"
 
         if self.instr_type == ".word[]":
             res += f"\tarray: {self.array}"
         elif self.instr_type == ".word":
-            res += f"\value: {self.value}"
+            res += f"\tvalue: {self.value}"
         elif self.instr_type == ".asciiz":
-            res += f"\vtext: {self.txt}"
-            res += f"\vstr: {self.str}"
+            res += f"\tvtext: {self.txt}"
+            res += f"\tvstr: {self.str}"
 
         return res 
 
@@ -98,7 +97,7 @@ class Datum():
 
         with open(output_file, "w") as f:
             # If starting the data section and the first datum is not a .word
-            if bytes_written == 0 and self.type == ".word":
+            if bytes_written == 0 and self.instr_type == ".word":
                 f.write("\n")
 
             if self.instr_type == ".word":
