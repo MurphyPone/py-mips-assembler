@@ -33,7 +33,6 @@ class Datum():
                 padding_needed = 4 - (address % 4)
                 self.address = padding_needed + address
         
-            
             # check if data is a list
             if "," in rest_of_str or ":" in rest_of_str:
                 self.array = []
