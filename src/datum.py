@@ -38,6 +38,9 @@ class Datum():
                 self.array = []
                 self.type = ".word[]"
 
+                rest_of_str = rest_of_str[len(".word"):]
+
+
                 if "," in rest_of_str:
                     elems = rest_of_str.split(",")
                     for e in elems:
@@ -51,7 +54,7 @@ class Datum():
                     length = int(length)
                     self.array = [value] * length
                     
-                    for i in range(self.length):
+                    for i in range(length):
                         self.address += 0x4
             
             # single value
