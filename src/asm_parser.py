@@ -70,7 +70,7 @@ INSTRUCITONS = [
 
     Instruction("nor",     "R", "000000", "100111"),
     Instruction("slti",    "I", "001010", None),
-    Instruction("syscall", "S","000000", "001100"),
+    Instruction("syscall", "S", "000000", "001100"),
 
     Instruction("sw",      "I", "101011", None),
     Instruction("addu",    "R", "000000", "100001"),
@@ -154,12 +154,9 @@ def translate_pseudo_command(output_file, line, address: Address, labels: List[D
 
         # print(labels)
         # print(f"'{label}'")
-        print("LABELS", labels)
         for lbl in labels:
             if lbl.name == label:
-                print("lbl: ", lbl)
                 subcommand = f"addi\t{rt}, $zero, {lbl.address}"
-                print(f"[TRANSLATE] -- subcommand: {subcommand}")
                 command = ParseResult(subcommand, address, labels)
                 command.write_parse_result(output_file)
 
@@ -274,13 +271,12 @@ class ParseResult():
 
             elif self.mnemonic == "lui":
                 self.rt_name = split[1]
-                self.Imm     = int(split[3])
+                self.Imm     = int(split[2])
                 self.rs      = "00000"
 
-            elif self.mnemonic == "bglez" or self.mnemonic == "bgtz":
+            elif self.mnemonic == "blez" or self.mnemonic == "bgtz":
                 self.rs_name = split[1]
                 label        = split[2]
-                self.Imm     = int(split[3])
 
                 for symbol in symbols:
                     if symbol.name == label:
@@ -373,12 +369,9 @@ class ParseResult():
                     f.write(f"{self.opcode}00000{self.rt}{self.rd}{self.rs}{self.function}\n")
                 
                 elif self.mnemonic == "blez" or self.mnemonic == "bgtz":
-                    f.write(f"{self.opcode}{self.rs}00000{self.rd}{self.IMM}\n")
+                    f.write(f"{self.opcode}{self.rs}00000{self.IMM}\n")
                 
                 else:
-                    if self.mnemonic == "addi":
-                        print(self)
-
                     f.write(f"{self.opcode}{self.rs}{self.rt}{self.IMM}\n")
 
             elif self.instr_type == "S":

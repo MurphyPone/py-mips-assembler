@@ -12,15 +12,13 @@ class Datum():
             self.address = address.address
 
             return 
-            
-        self.last_was_asciiz = False
 
         self.name: str = None
         self.instr_type: str = None
         self.array: List[int] = None
         self.value: int = None
         self.txt: str = None # the actual string
-        self.str: str = None # the binary representation
+        self.bin_str: str = None # the binary representation
         self.address: int = address.address # not a reference to the address flyweight, just the number
 
         split = line.split()
@@ -61,20 +59,18 @@ class Datum():
             else: 
                 self.value = int(split[2])
                 address.increment(4)
-
-            if self.last_was_asciiz:
-                pass 
-
-            self.last_was_asciiz = False 
         
         # it's a string 
         elif self.instr_type == ".asciiz":
-            self.txt = split[2][1:-1] # discard quoation marks
-            self.str = ""
+            # print(f"[DATUM] -- rest_of_str: {' '.join(rest_of_str.split()[1:])}")
+            rest_of_str = ' '.join(rest_of_str.split()[1:])
+            self.txt = rest_of_str[1:-1] # discard quoation marks
+            self.txt += "\0"
+            self.bin_str = ""
             for c in  self.txt:
-                self.str += "{0:08b}".format(ord(c))
+                self.bin_str += "{0:08b}".format(ord(c))
 
-            self.last_was_asciiz = True        
+        # print(self)       
 
 
     def __repr__(self):
@@ -87,50 +83,56 @@ class Datum():
         elif self.instr_type == ".word":
             res += f"\tvalue: {self.value}"
         elif self.instr_type == ".asciiz":
-            res += f"\tvtext: {self.txt}"
-            res += f"\tvstr: {self.str}"
+            res += f"\ttext: {self.txt}"
+            res += f"\tstr: {self.bin_str}"
 
         return res 
 
     
     def write_datum(self, output_file, type_next):
-        print(f"[DATUM] -- output_file: {output_file}, {self.name}, {self.address}")
-        bytes_written = 0
 
         with open(output_file, "a") as f:
             # If starting the data section and the first datum is not a .word
-            if bytes_written == 0 and self.instr_type == ".word":
-                f.write("")
+            if Datum.bytes_written == 0 and self.instr_type != ".word":
+                f.write("\n")
 
             if self.instr_type == ".word":
                 binary = "{0:032b}".format(self.value if self.value >= 0 else (1<<32) + self.value)
                 f.write(f"\n{binary}")
-                bytes_written += 4
+                Datum.bytes_written += 4
             
             elif self.instr_type == ".word[]":
-                for word in self.array:
+                f.write("\n")
+                for i, word in enumerate(self.array):
                     binary = "{0:032b}".format(word if word >= 0 else (1<<32) + word)
-                    f.write(f"\n{binary}")
-                    bytes_written += 4
+                    f.write(f"{binary}")
+                    Datum.bytes_written += 4
+                    
+                    if i != len(self.array): # TODO might need to -1 here
+                        f.write("\n")
+
 
             elif self.instr_type == ".asciiz":
-                for c in range(len(self.str+1)/8):
-                    if bytes_written %4 == 0 and bytes_written != 0:
+                for char in self.txt:
+                    # print(f"{self.txt} {char}", Datum.bytes_written)
+                    if Datum.bytes_written % 4 == 0 and Datum.bytes_written != 0:
                         f.write("\n")
-                    f.write(c)
-                    bytes_written += 1
+                    byte = "{0:08b}".format(ord(char))
+                    f.write(byte)
+                    Datum.bytes_written += 1
 
-                if type_next == ".asciiz": # need to align
-                    padding_needed = 32 - len(self.str) % 32
-                    if padding_needed != 32:
-                        f.write(f"{'0'*padding_needed}")
-                    bytes_written += padding_needed / 8
+                if type_next != ".asciiz": # need to align
+                    bits_of_padding_needed = 32 - len(self.bin_str) % 32
+                    if bits_of_padding_needed != 32:
+                        padding = "0" * bits_of_padding_needed
+                        f.write(f"{padding}\n")
+                    Datum.bytes_written += int(bits_of_padding_needed / 8)
 
 
 def write_symbol_table(output_file, symbols):
     with open(output_file, "w") as f:
         for symbol in symbols:
-            address = "{0:08b}".format(symbol.address.address)
+            address = "{0:08b}".format(symbol.address)
             f.write(f"0x{address}:\t {symbol.name}\n")
 
 
