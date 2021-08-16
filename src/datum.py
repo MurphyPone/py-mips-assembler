@@ -1,26 +1,27 @@
 from typing import List
+from address import Address
 
 class Datum():
     bytes_written = 0 # static class variable
-    def __init__(self, line, address, instr_type=None, name=None):
-        print(f"[DATUM] -- line in Datum constructor: '{line}'")
+    def __init__(self, line, address: Address, instr_type=None, name=None):
+        print(f"[DATUM] -- line in Datum constructor: '{line}', global address: {address}")
         
         if instr_type == ".label":
             self.instr_type = instr_type
             self.name = name
-            self.address = address
+            self.address = address.address
 
             return 
             
         self.last_was_asciiz = False
 
         self.name: str = None
-        self.instr_type:str = None
+        self.instr_type: str = None
         self.array: List[int] = None
         self.value: int = None
         self.txt: str = None # the actual string
         self.str: str = None # the binary representation
-        self.address: int = address 
+        self.address: int = address.address # not a reference to the address flyweight, just the number
 
         split = line.split()
         self.name = split[0][:-1]
@@ -29,9 +30,10 @@ class Datum():
         rest_of_str = " ".join(split[1:])
 
         if self.instr_type == ".word":
-            if address % 4 != 0:
-                padding_needed = 4 - (address % 4)
-                self.address = padding_needed + address
+            if address.address % 4 != 0:
+                padding_needed = 4 - (address.address % 4)
+                address.set_address(padding_needed + address.address)
+                self.address = address.address
         
             
             # check if data is a list
@@ -45,7 +47,7 @@ class Datum():
                     elems = rest_of_str.split(",")
                     for e in elems:
                         self.array.append(int(e))
-                        self.address += 4
+                        address.increment(4)
 
                 else:
                     value, length  = rest_of_str.split(":")
@@ -53,12 +55,12 @@ class Datum():
                     length = int(length)
                     self.array = [value] * length
                     
-                    for i in range(length):
-                        self.address += 0x4
+                    address.increment(0x4 * length)
             
             # single value
             else: 
                 self.value = int(split[2])
+                address.increment(4)
 
             if self.last_was_asciiz:
                 pass 
@@ -72,7 +74,7 @@ class Datum():
             for c in  self.txt:
                 self.str += "{0:08b}".format(ord(c))
 
-            self.last_was_asciiz = True         
+            self.last_was_asciiz = True        
 
 
     def __repr__(self):
@@ -92,28 +94,24 @@ class Datum():
 
     
     def write_datum(self, output_file, type_next):
-        print(f"[DATUM] -- output_file: {output_file}")
+        print(f"[DATUM] -- output_file: {output_file}, {self.name}, {self.address}")
         bytes_written = 0
 
-        with open(output_file, "w") as f:
+        with open(output_file, "a") as f:
             # If starting the data section and the first datum is not a .word
             if bytes_written == 0 and self.instr_type == ".word":
-                f.write("\n")
+                f.write("")
 
             if self.instr_type == ".word":
-                binary = "{0:032b}".format(self.value)
+                binary = "{0:032b}".format(self.value if self.value >= 0 else (1<<32) + self.value)
                 f.write(f"\n{binary}")
                 bytes_written += 4
             
             elif self.instr_type == ".word[]":
-                f.write(f"\n")
-                for i in range(len(self.array)):
-                    word = self.array[i]
-                    binary = "{0:032b}".format(word)
-                    f.write(f"{binary}")
+                for word in self.array:
+                    binary = "{0:032b}".format(word if word >= 0 else (1<<32) + word)
+                    f.write(f"\n{binary}")
                     bytes_written += 4
-                    if i == len(self.array):
-                        f.write("\n")
 
             elif self.instr_type == ".asciiz":
                 for c in range(len(self.str+1)/8):
@@ -132,7 +130,7 @@ class Datum():
 def write_symbol_table(output_file, symbols):
     with open(output_file, "w") as f:
         for symbol in symbols:
-            address = "{0:08b}".format(symbol.address)
+            address = "{0:08b}".format(symbol.address.address)
             f.write(f"0x{address}:\t {symbol.name}\n")
 
 

@@ -4,15 +4,12 @@ import sys
 import os
 from typing import List
 
+from address import Address
 from datum import Datum, write_symbol_table
-# from util import is_pseudo_command, translate_pseudo_command
 from asm_parser import ParseResult, is_pseudo_command, translate_pseudo_command
 
-global address # TODO?
-
-def main(argc: int, argv: List[str]):
-    write_symbols = False
-    input_file: str = None
+def handle_args(argc, argv):
+    write_symbols, input_file, output_file, symbol_file = False, None, None, None
     if argc == 3 and argv[1] == "-symbols":
         write_symbols = True 
         input_file = argv[2] 
@@ -33,34 +30,40 @@ def main(argc: int, argv: List[str]):
         except OSError:
             pass
 
-        print(f"[MAIN] -- input file: {input_file}, output file: {output_file}")
+    return write_symbols, input_file, output_file, symbol_file
 
-    else:
-        print("Too few arguments, try\t`assemble <input.asm>")
+def main(argc: int, argv: List[str]):
+    write_symbols, input_file, output_file, symbol_file = handle_args(argc, argv)
     
     symbols = []
     done_with_data = False
-    address = 0x0
+    address = Address()
     
     print(f"[MAIN] -- making first pass...")
-    with open (input_file, "r") as f:
+    with open(input_file, "r") as f:
         lines = f.readlines()
         for line in lines:
             line = line.strip()
-            print(f"[MAIN] -- line: '{line}'")
+            
+            # DEBUG
+            if not line.startswith("#") and not line == "": 
+                print(f"[MAIN] -- line: '{line}', address: {address}")
 
             if line.startswith("#") or line == "": 
                 continue
 
             elif line == ".data":
-                address = 0x2000 
+                address.set_address(0x2000)
+                print("[ADD] ", address)
 
             elif line == ".text":
                 done_with_data = True 
-                address = 0x0000 
+                address.set_address(0x0000)
 
             elif not done_with_data: # we're reading data
+                print("[ADD] -- pre: ", address)
                 symbols.append(Datum(line, address))
+                print("[ADD] -- post: ", address)
 
             elif ":" in line: # is a label
                 name = line[:line.index(":")]
@@ -69,28 +72,31 @@ def main(argc: int, argv: List[str]):
                 symbols.append(label)
 
             else: # is command
-                address += 0x4
+                address.increment(0x4)
                 if "blt" in line:
-                    address += 0x4
+                    address.increment(0x4)
 
     if write_symbols:
-            write_symbol_table(symbol_file, symbols)
+        write_symbol_table(symbol_file, symbols)
     
     print(f"[MAIN] -- making second pass...")
     with open (input_file, "r") as f:
         lines = f.readlines()
         for line in lines:
             line = line.strip()
-            print(f"[MAIN] -- line: '{line}'")
+            
+            # DEBUG
+            if not line.startswith("#") and not line == "": 
+                print(f"[MAIN] -- line: '{line}', address: {address}")
 
             if line.startswith("#") or line == "":  
-                continue
+                pass
 
             elif line == ".data":
-                continue # skip data on second pass
+                pass # skip data on second pass
 
             elif line == ".text":
-                address = 0x0000 
+                address.set_address(0x0000)
 
             elif ":" in line: # is a label
                 continue 
@@ -103,13 +109,13 @@ def main(argc: int, argv: List[str]):
                     command = ParseResult(line, address, symbols)
                     command.write_parse_result(output_file)
 
-                address += 0x4 
+                address.increment(0x4)
 
-    if write_symbols:
-        for i in range(len(symbols)):
+    if not write_symbols:
+        for i in range(len(symbols)-1):
             symbol = symbols[i]
-            symbol.write_datum(symbol_file, symbols[i].type)
-        symbols[-1].write_datum(symbol_file, "last")
+            symbol.write_datum(output_file, symbols[i+1].instr_type)
+        symbols[-1].write_datum(output_file, "last")
 
     return 0
 
