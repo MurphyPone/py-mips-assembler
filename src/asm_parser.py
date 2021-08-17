@@ -121,7 +121,6 @@ def get_IMM(Imm):
     return "{0:016b}".format(Imm if Imm >= 0 else (1<<16) + Imm)
 
 def translate_pseudo_command(output_file, line, address: Address, labels: List[Datum]):
-    # print(f"[TRANSLATE] -- {line}")
     split = line.replace(",", "").split()
     
     mnemonic = split[0]
@@ -153,8 +152,6 @@ def translate_pseudo_command(output_file, line, address: Address, labels: List[D
     elif mnemonic == "la":
         rt, label = split[1], split[2]
 
-        # print(labels)
-        # print(f"'{label}'")
         for lbl in labels:
             if lbl.name == label:
                 subcommand = f"addi\t{rt}, $zero, {lbl.address}"

@@ -4,8 +4,7 @@ from address import Address
 class Datum():
     bytes_written = 0 # static class variable
     def __init__(self, line, address: Address, instr_type=None, name=None):
-        print(f"[DATUM] -- line in Datum constructor: '{line}', global address: {address}")
-        
+
         if instr_type == ".label":
             self.instr_type = instr_type
             self.name = name
@@ -60,17 +59,13 @@ class Datum():
         
         # it's a string 
         elif self.instr_type == ".asciiz":
-            # print(f"[DATUM] -- rest_of_str: {' '.join(rest_of_str.split()[1:])}")
             rest_of_str = ' '.join(rest_of_str.split()[1:])
             self.txt = rest_of_str[1:-1] # discard quoation marks
             self.txt += "\0"
             self.bin_str = ""
             for c in  self.txt:
                 self.bin_str += "{0:08b}".format(ord(c))
-                address.increment(1)
-
-        # print(self)       
-
+                address.increment(1)     
 
     def __repr__(self):
         res = f"name: '{self.name}'\n"

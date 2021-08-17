@@ -14,7 +14,6 @@ def handle_args(argc, argv):
         write_symbols = True 
         input_file = argv[2] 
         symbol_file = f"{input_file[:input_file.index('.')]}_symbols.txt"
-        print(f"[MAIN] -- input file: {input_file}, symbol file: {symbol_file}")
         
         try:
             os.remove(symbol_file)
@@ -39,31 +38,23 @@ def main(argc: int, argv: List[str]):
     done_with_data = False
     address = Address()
     
-    print(f"[MAIN] -- making first pass...")
     with open(input_file, "r") as f:
         lines = f.readlines()
         for line in lines:
             line = line.strip()
-            
-            # DEBUG
-            if not line.startswith("#") and not line == "": 
-                print(f"[MAIN] -- line: '{line}', address: {address}")
 
             if line.startswith("#") or line == "": 
                 continue
 
             elif line == ".data":
                 address.set_address(0x2000)
-                print("[ADD] ", address)
 
             elif line == ".text":
                 done_with_data = True 
                 address.set_address(0x0000)
 
             elif not done_with_data: # we're reading data
-                print("[ADD] -- pre: ", address)
                 symbols.append(Datum(line, address))
-                print("[ADD] -- post: ", address)
 
             elif ":" in line: # is a label
                 name = line[:line.index(":")]
@@ -79,15 +70,10 @@ def main(argc: int, argv: List[str]):
     if write_symbols:
         write_symbol_table(symbol_file, symbols)
     
-    print(f"[MAIN] -- making second pass...")
     with open (input_file, "r") as f:
         lines = f.readlines()
         for line in lines:
             line = line.strip()
-            
-            # DEBUG
-            if not line.startswith("#") and not line == "": 
-                print(f"[MAIN] -- line: '{line}', address: {address}")
 
             if line.startswith("#") or line == "":  
                 pass
