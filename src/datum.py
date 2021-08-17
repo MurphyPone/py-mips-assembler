@@ -69,6 +69,7 @@ class Datum():
             self.bin_str = ""
             for c in  self.txt:
                 self.bin_str += "{0:08b}".format(ord(c))
+                address.increment(1)
 
         # print(self)       
 
