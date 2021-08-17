@@ -33,7 +33,6 @@ class Datum():
                 address.set_address(padding_needed + address.address)
                 self.address = address.address
         
-            
             # check if data is a list
             if "," in rest_of_str or ":" in rest_of_str:
                 self.array = []
@@ -46,13 +45,12 @@ class Datum():
                     for e in elems:
                         self.array.append(int(e))
                         address.increment(4)
-
+                        
                 else:
                     value, length  = rest_of_str.split(":")
                     value = int(value)
                     length = int(length)
                     self.array = [value] * length
-                    
                     address.increment(0x4 * length)
             
             # single value
@@ -80,14 +78,14 @@ class Datum():
         res += f"\taddress: {self.address}\n"
 
         if self.instr_type == ".word[]":
-            res += f"\tarray: {self.array}"
+            res += f"array: {self.array}"
         elif self.instr_type == ".word":
             res += f"\tvalue: {self.value}"
         elif self.instr_type == ".asciiz":
             res += f"\ttext: {self.txt}"
             res += f"\tstr: {self.bin_str}"
 
-        return res 
+        return res + "]]" 
 
     
     def write_datum(self, output_file, type_next):

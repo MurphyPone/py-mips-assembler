@@ -123,6 +123,7 @@ def get_IMM(Imm):
 def translate_pseudo_command(output_file, line, address: Address, labels: List[Datum]):
     # print(f"[TRANSLATE] -- {line}")
     split = line.replace(",", "").split()
+    
     mnemonic = split[0]
     rest_of_str = " ".join(split[1:])
 
@@ -292,6 +293,7 @@ class ParseResult():
                         self.Imm = int((symbol.address - current_address.address - 4) / 4 )
 
             elif self.mnemonic == "lw" or self.mnemonic == "sw":
+
                 self.rt_name = split[1]
                 
                 mess = split[2].replace("(", " ").replace(")", " ").split()

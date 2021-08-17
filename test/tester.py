@@ -21,6 +21,7 @@ def main(argc, argv):
 
     if multiple:
         scores = []
+        
         for entry in os.listdir(folder):
             if entry.endswith("_output.o"): # find a given file
                 input_file = f"{folder}{entry}"
