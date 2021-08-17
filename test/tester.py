@@ -21,7 +21,7 @@ def main(argc, argv):
 
     if multiple:
         scores = []
-        total_score = 0
+        
         for entry in os.listdir(folder):
             if entry.endswith("_output.o"): # find a given file
                 input_file = f"{folder}{entry}"
@@ -32,8 +32,7 @@ def main(argc, argv):
                     lines = []
                     for line in raw_lines:
                         if not line.strip() == "":
-                            lines.append(line)
-
+                            lines.append(line.strip())
                 
                 with open(solution_file, "r") as f:
                     raw_lines = f.readlines()
@@ -41,11 +40,11 @@ def main(argc, argv):
                     solution_lines = []
                     for line in raw_lines:
                         if not line.strip() == "":
-                            solution_lines.append(line)
+                            solution_lines.append(line.strip())
 
                 if len(lines) != len(solution_lines):
                     print(f"length of output files are not the same. len(lines): {len(lines)}, len(solution_lines) {len(solution_lines)}")
-                    return 
+                    return
 
                 your_line = "your line:".ljust(12)
                 solution_line = "solution:".ljust(12)
@@ -55,25 +54,25 @@ def main(argc, argv):
                     "earned": 0,
                     "total": len(lines)
                 }
-                
-                total_score += current_score["total"]
 
                 for i, (l, s) in enumerate(zip(lines, solution_lines)):
                     idx = "{0:02d}".format(i)
-                    print(f"{idx} {your_line}{l.strip()}\n{idx} {solution_line}{s.strip()}", end=" ")
+                    # print(f"{idx} {your_line}{l.strip()}\n{idx} {solution_line}{s.strip()}", end=" ")
                     if l == s:
                         current_score["earned"] += 1
-                        print("✅\n")
+                        # print("✅\n")
                     else:
-                        print("❌\n")
-                
+                        pass
+                        # print("❌\n")
+
                 scores.append(current_score)
-                print(f"matched {current_score['earned']} / {current_score['total']} lines")
-                print(f"-------------------------------------------------\n")
+                # print(f"matched {current_score['earned']} / {current_score['total']} lines")
+                # print("---------------------------------------\n")
         
-        print(f"Summary:")
         for score in scores:
-            print(f"\t{score['name']}\t{score['earned']} / {score['total']}")
+            earned = "{0:2d}".format(score['earned'])
+            total = "{0:2d}".format(score['total'])
+            print(f"{score['name']}\t{earned} / {total}")
     
     else: # process single
         with open(input_file, "r") as f:
@@ -81,7 +80,7 @@ def main(argc, argv):
             lines = []
             for line in raw_lines:
                 if not line.strip() == "":
-                    lines.append(line)
+                    lines.append(line.strip())
 
         
         with open(solution_file, "r") as f:
@@ -90,11 +89,11 @@ def main(argc, argv):
             solution_lines = []
             for line in raw_lines:
                 if not line.strip() == "":
-                    solution_lines.append(line)
+                    solution_lines.append(line.strip())
 
         if len(lines) != len(solution_lines):
-                    print(f"length of output files are not the same. len(lines): {len(lines)}, len(solution_lines) {len(solution_lines)}")
-                    return 
+            print(f"length of output files are not the same. len(lines): {len(lines)}, len(solution_lines) {len(solution_lines)}")
+            return
 
         your_line = "your line:".ljust(12)
         solution_line = "solution:".ljust(12)
@@ -103,7 +102,7 @@ def main(argc, argv):
         total = len(lines)
 
         for i, (l, s) in enumerate(zip(lines, solution_lines)):
-            idx = "{0:02d}".format(i)
+            idx = "{:02d}".format(i+1)
             print(f"{idx} {your_line}{l.strip()}\n{idx} {solution_line}{s.strip()}", end=" ")
             if l == s:
                 score += 1

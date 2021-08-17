@@ -11,6 +11,7 @@ generates the relevant machine code for the valid `<input.asm>`
 ## TODO 
 
 - improve testing suite
+- the address is being set to 0x0 for pseudo commands, but needs to be 0x2000
 
 ## Contributing 
 
