@@ -4,6 +4,7 @@ import os
 
 def main(argc, argv):
     multiple = False
+    verbose = False
 
     if argc < 2:
         print("Missing input file, invoke with ./testery.py <xyz_output.o>")
@@ -18,6 +19,12 @@ def main(argc, argv):
         folder = argv[2]
         multiple = True
         print(f"folder: {folder}")
+    elif argc == 3 and argv[1] == "-vf":
+        folder = argv[2]
+        multiple = True
+        verbose = True
+        print(f"folder: {folder}")
+
 
     if multiple:
         scores = []
@@ -57,17 +64,20 @@ def main(argc, argv):
 
                 for i, (l, s) in enumerate(zip(lines, solution_lines)):
                     idx = "{0:02d}".format(i)
-                    # print(f"{idx} {your_line}{l.strip()}\n{idx} {solution_line}{s.strip()}", end=" ")
+                    if verbose:
+                        print(f"{idx} {your_line}{l.strip()}\n{idx} {solution_line}{s.strip()}", end=" ")
                     if l == s:
                         current_score["earned"] += 1
-                        # print("✅\n")
+                        if verbose:
+                            print("✅\n")
                     else:
-                        pass
-                        # print("❌\n")
+                        if verbose:
+                            print("❌\n")
 
                 scores.append(current_score)
-                # print(f"matched {current_score['earned']} / {current_score['total']} lines")
-                # print("---------------------------------------\n")
+                if verbose:
+                    print(f"matched {current_score['earned']} / {current_score['total']} lines")
+                    print("---------------------------------------\n")
         
         for score in scores:
             earned = "{0:2d}".format(score['earned'])
